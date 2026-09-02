@@ -10,6 +10,10 @@ let currentAudio = null;
 // más reciente puede reproducir cuando su fetch a ElevenLabs resuelve — evita
 // que ambos Audio terminen sonando a la vez.
 let requestToken = 0;
+// onEnd de la llamada activa: si stopSpeaking() interrumpe a mitad de
+// reproducción (ej. el usuario empieza a grabar mientras la IA habla), el
+// avatar debe volver a estado "quieto" igual que si hubiera terminado sola.
+let activeOnEnd = null;
 
 export function stopSpeaking() {
   requestToken += 1;
@@ -19,17 +23,26 @@ export function stopSpeaking() {
     currentAudio = null;
   }
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  activeOnEnd?.();
+  activeOnEnd = null;
 }
 
-function speakWithBrowser(text) {
-  if (!('speechSynthesis' in window)) return;
+function speakWithBrowser(text, { onStart, onEnd } = {}) {
+  if (!('speechSynthesis' in window)) {
+    onEnd?.();
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
   utterance.rate = 0.9;
+  utterance.onstart = () => onStart?.();
+  utterance.onend = () => onEnd?.();
+  utterance.onerror = () => onEnd?.();
+  activeOnEnd = onEnd;
   window.speechSynthesis.speak(utterance);
 }
 
-export async function speak(text) {
+export async function speak(text, { onStart, onEnd } = {}) {
   stopSpeaking();
   const myToken = requestToken;
   try {
@@ -38,12 +51,20 @@ export async function speak(text) {
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     currentAudio = audio;
-    audio.addEventListener('ended', () => URL.revokeObjectURL(url));
-    audio.addEventListener('error', () => URL.revokeObjectURL(url));
+    activeOnEnd = onEnd;
+    audio.addEventListener('play', () => onStart?.());
+    audio.addEventListener('ended', () => {
+      URL.revokeObjectURL(url);
+      onEnd?.();
+    });
+    audio.addEventListener('error', () => {
+      URL.revokeObjectURL(url);
+      onEnd?.();
+    });
     await audio.play();
   } catch (err) {
     if (myToken !== requestToken) return;
     console.error('[speak] ElevenLabs falló, usando voz del navegador como respaldo:', err.message);
-    speakWithBrowser(text);
+    speakWithBrowser(text, { onStart, onEnd });
   }
 }

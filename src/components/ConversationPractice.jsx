@@ -4,6 +4,7 @@ import { transcribeAudio } from '../utils/transcribeApi.js';
 import { fetchLessons, sendTutorMessage, translateText } from '../utils/tutorApi.js';
 import { speak, stopSpeaking } from '../utils/speak.js';
 import { useMicRecorder } from '../hooks/useMicRecorder.js';
+import TutorAvatar from './TutorAvatar.jsx';
 
 const MAX_HISTORY = 16; // ~8 turnos usuario+IA (mismo límite que el server)
 
@@ -14,6 +15,8 @@ export default function ConversationPractice() {
   const [messages, setMessages] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [subtitle, setSubtitle] = useState('');
 
   const { isRecording, error: recorderError, start, stop } = useMicRecorder();
 
@@ -37,7 +40,8 @@ export default function ConversationPractice() {
     if (!lesson) return;
     setMessages([{ role: 'assistant', content: lesson.starter }]);
     setError(null);
-    speak(lesson.starter);
+    setSubtitle(lesson.starter);
+    speak(lesson.starter, { onStart: () => setIsSpeaking(true), onEnd: () => setIsSpeaking(false) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId, lessons]);
 
@@ -65,7 +69,8 @@ export default function ConversationPractice() {
         const { text: replyText, provider } = await sendTutorMessage(lessonId, withUser);
         const withReply = [...withUser, { role: 'assistant', content: replyText, provider }].slice(-MAX_HISTORY);
         setMessages(withReply);
-        speak(replyText);
+        setSubtitle(replyText);
+        speak(replyText, { onStart: () => setIsSpeaking(true), onEnd: () => setIsSpeaking(false) });
       } catch (err) {
         console.error('[ConversationPractice] Error:', err);
         setError(err.message || 'No se pudo procesar tu respuesta.');
@@ -112,6 +117,8 @@ export default function ConversationPractice() {
               <h1 className="h4 mb-3">Conversación con IA</h1>
 
               {lessonsError && <div className="alert brand-alert-danger">{lessonsError}</div>}
+
+              <TutorAvatar speaking={isSpeaking} subtitle={subtitle} />
 
               <div className="mb-3 p-2" style={{ maxHeight: '360px', overflowY: 'auto' }}>
                 {messages.length === 0 && (

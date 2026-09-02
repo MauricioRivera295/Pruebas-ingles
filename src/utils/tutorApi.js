@@ -21,12 +21,13 @@ export async function fetchLessons() {
   return response.json();
 }
 
-export async function sendTutorMessage(lessonId, messages) {
+export async function sendTutorMessage(lessonId, messages, areaId) {
   const response = await fetchWithTimeout('/api/tutor/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       lessonId,
+      areaId,
       messages: messages.map(({ role, content }) => ({ role, content })),
     }),
   });
@@ -36,6 +37,12 @@ export async function sendTutorMessage(lessonId, messages) {
     throw new Error(body.error || 'No se pudo obtener respuesta de la IA.');
   }
 
+  return response.json();
+}
+
+export async function fetchInterviewAreas() {
+  const response = await fetchWithTimeout('/api/tutor/interview-areas', undefined, 8000);
+  if (!response.ok) throw new Error('No se pudieron cargar las áreas de entrevista.');
   return response.json();
 }
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { pipeline, env } from '@xenova/transformers';
 import { getTutorReply } from './tutor.js';
 import { synthesizeSpeech } from './tts.js';
-import { lessons } from '../shared/lessons.js';
+import { lessons, interviewAreas } from '../shared/lessons.js';
 
 const MAX_CHAT_MESSAGES = 16; // ~8 turnos usuario+IA
 
@@ -89,15 +89,37 @@ app.post('/api/transcribe', async (req, res) => {
   }
 });
 
-// Metadata pública de las lecciones (nunca el systemPrompt: el cliente solo
-// elige un lessonId, el server decide qué instrucciones le da a la IA).
+// Metadata pública de las lecciones (nunca el systemPrompt ni las plantillas:
+// el cliente solo elige un lessonId —y, si aplica, un areaId de la lista
+// fija de abajo—, el server decide qué instrucciones le da a la IA).
 app.get('/api/tutor/lessons', (_req, res) => {
-  res.json(lessons.map(({ id, title, description, starter }) => ({ id, title, description, starter })));
+  res.json(
+    lessons.map(({ id, title, description, starter, requiresArea }) => ({
+      id,
+      title,
+      description,
+      starter,
+      requiresArea: Boolean(requiresArea),
+    }))
+  );
+});
+
+// Áreas para "Entrevista de Trabajo", con el saludo inicial ya resuelto por
+// el servidor (usa el mismo label que luego arma el systemPrompt real).
+app.get('/api/tutor/interview-areas', (_req, res) => {
+  const lesson = lessons.find((l) => l.id === 'job-interview');
+  res.json(
+    interviewAreas.map((area) => ({
+      id: area.id,
+      label: area.label,
+      starter: lesson.starterTemplate(area.label),
+    }))
+  );
 });
 
 app.post('/api/tutor/chat', async (req, res) => {
   try {
-    const { lessonId, messages } = req.body ?? {};
+    const { lessonId, areaId, messages } = req.body ?? {};
     const lesson = lessons.find((l) => l.id === lessonId);
     if (!lesson) {
       return res.status(400).json({ error: 'Lección no encontrada.' });
@@ -106,12 +128,21 @@ app.post('/api/tutor/chat', async (req, res) => {
       return res.status(400).json({ error: 'Falta el historial de la conversación.' });
     }
 
+    let systemPrompt = lesson.systemPrompt;
+    if (lesson.requiresArea) {
+      const area = interviewAreas.find((a) => a.id === areaId);
+      if (!area) {
+        return res.status(400).json({ error: 'Área de entrevista no válida.' });
+      }
+      systemPrompt = lesson.systemPromptTemplate(area.label);
+    }
+
     const trimmed = messages.slice(-MAX_CHAT_MESSAGES).map((m) => ({
       role: m?.role === 'assistant' ? 'assistant' : 'user',
       content: String(m?.content ?? '').slice(0, 2000),
     }));
 
-    const { text, provider } = await getTutorReply(lesson.systemPrompt, trimmed);
+    const { text, provider } = await getTutorReply(systemPrompt, trimmed);
     res.json({ text, provider });
   } catch (err) {
     console.error('[server] Error del tutor conversacional (Groq y Gemini fallaron):', err);

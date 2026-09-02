@@ -106,3 +106,53 @@
 .nav-pills .nav-link {
   color: var(--brand-navy);
 }
+
+.tutor-avatar-img {
+  display: block;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 4px #ffffff, 0 4px 10px rgba(6, 31, 63, 0.2);
+  transition: transform 0.2s ease;
+}
+.tutor-avatar-img.speaking {
+  animation: tutor-avatar-talk 0.7s ease-in-out infinite, tutor-avatar-pulse 0.7s ease-in-out infinite;
+}
+
+.reading-word {
+  color: #adb5bd;
+  transition: color 0.2s ease;
+}
+.reading-word.spoken {
+  color: #111827;
+  font-weight: 600;
+}
+.reading-word.spoken.tobe {
+  color: var(--brand-success-solid);
+}
+
+@keyframes tutor-avatar-talk {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.03) rotate(-1.5deg);
+  }
+  50% {
+    transform: scale(1.06) rotate(0deg);
+  }
+  75% {
+    transform: scale(1.03) rotate(1.5deg);
+  }
+}
+@keyframes tutor-avatar-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px #ffffff, 0 0 0 4px rgba(6, 31, 63, 0.25), 0 4px 10px rgba(6, 31, 63, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px #ffffff, 0 0 0 12px rgba(6, 31, 63, 0), 0 4px 10px rgba(6, 31, 63, 0.2);
+  }
+}

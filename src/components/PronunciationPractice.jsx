@@ -241,13 +241,19 @@ export default function PronunciationPractice() {
                         </div>
                       )}
                       {isPartial && (
-                        <div className="alert brand-alert-warning mb-0">
-                          Casi lo logras — sigue practicando e intenta de nuevo.
+                        <div className="alert brand-alert-warning mb-0 d-flex justify-content-between align-items-center">
+                          <span>Casi lo logras — sigue practicando e intenta de nuevo.</span>
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleListenPhrase}>
+                            🔊 Escuchar ejemplo
+                          </button>
                         </div>
                       )}
                       {isFail && (
-                        <div className="alert brand-alert-danger mb-0">
-                          No coincide con la frase esperada. Intenta de nuevo.
+                        <div className="alert brand-alert-danger mb-0 d-flex justify-content-between align-items-center">
+                          <span>No coincide con la frase esperada. Intenta de nuevo.</span>
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleListenPhrase}>
+                            🔊 Escuchar ejemplo
+                          </button>
                         </div>
                       )}
                     </div>

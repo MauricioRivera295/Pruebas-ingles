@@ -29,7 +29,7 @@ const DIACRITICS_REGEX = new RegExp('[\\u0300-\\u036f]', 'g');
 
 // Normaliza texto para comparar pronunciación sin penalizar mayúsculas,
 // acentos o puntuación (irrelevantes para el reconocimiento fonético).
-function normalize(text) {
+export function normalize(text) {
   return text
     .toLowerCase()
     .normalize('NFD')
@@ -47,7 +47,7 @@ export function hasDetectedSpeech(hypothesis) {
 }
 
 // Similitud 0-1 entre dos palabras individuales, basada en Levenshtein.
-function wordSimilarity(a, b) {
+export function wordSimilarity(a, b) {
   if (a === b) return 1;
   const maxLen = Math.max(a.length, b.length);
   if (maxLen === 0) return 1;
