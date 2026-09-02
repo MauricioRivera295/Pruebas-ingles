@@ -1,0 +1,108 @@
+/* Paleta de marca (proporcionada por el usuario) aplicada como tokens y
+   clases utilitarias sobre Bootstrap, para que los estados de la práctica
+   (correcto / parcial / incorrecto) contrasten de forma consistente con el
+   resto de la plataforma. */
+:root {
+  --brand-navy: #061f3f;
+  --brand-sky: #9ae1fd;
+  --brand-gradient: linear-gradient(135deg, #061f3f 20%, #9ae1fd 100%);
+
+  --brand-success-bg: #d1e7dd; /* verde pastel: respuesta correcta */
+  --brand-success-text: #0f5132;
+  --brand-success-solid: #198754;
+
+  --brand-danger-bg: #f8d7da; /* rojo pastel: respuesta incorrecta */
+  --brand-danger-text: #842029;
+  --brand-danger-solid: #dc3545;
+
+  --brand-amber: #f59e0b; /* acento naranja de la plataforma (hover) */
+  --brand-amber-bg: rgba(245, 158, 11, 0.14);
+  --brand-amber-border: rgba(245, 158, 11, 0.45);
+  --brand-amber-text: #92400e;
+
+  --brand-neutral-bg: #f1f3f5;
+  --brand-neutral-text: #495057;
+}
+
+.brand-banner {
+  background: var(--brand-gradient);
+  color: #ffffff;
+}
+
+.brand-phrase-box {
+  background: #eef7fc;
+  border: 1px solid #cfe9f7;
+}
+
+.brand-progress-track {
+  background-color: rgba(6, 31, 63, 0.08);
+}
+
+.brand-progress-fill {
+  background-color: var(--brand-navy);
+}
+
+.brand-btn-primary {
+  background-color: var(--brand-navy);
+  border-color: var(--brand-navy);
+  color: #ffffff;
+}
+.brand-btn-primary:hover,
+.brand-btn-primary:focus {
+  background-color: #04162d;
+  border-color: #04162d;
+  color: #ffffff;
+}
+
+.brand-alert-success {
+  background: var(--brand-success-bg);
+  color: var(--brand-success-text);
+  border: 1px solid rgba(15, 81, 50, 0.18);
+}
+
+.brand-btn-success {
+  background-color: var(--brand-success-solid);
+  border-color: var(--brand-success-solid);
+  color: #ffffff;
+}
+.brand-btn-success:hover,
+.brand-btn-success:focus {
+  background-color: #157347;
+  border-color: #146c43;
+  color: #ffffff;
+}
+
+.brand-alert-warning {
+  background: var(--brand-amber-bg);
+  color: var(--brand-amber-text);
+  border: 1px solid var(--brand-amber-border);
+}
+
+.brand-alert-danger {
+  background: var(--brand-danger-bg);
+  color: var(--brand-danger-text);
+  border: 1px solid rgba(132, 32, 41, 0.18);
+}
+
+.brand-alert-neutral {
+  background: var(--brand-neutral-bg);
+  color: var(--brand-neutral-text);
+  border: 1px solid #e2e5e8;
+}
+
+.brand-progress-bar-success {
+  background-color: var(--brand-success-solid);
+}
+.brand-progress-bar-warning {
+  background-color: var(--brand-amber);
+}
+.brand-progress-bar-danger {
+  background-color: var(--brand-danger-solid);
+}
+
+.nav-pills .nav-link.active {
+  background-color: var(--brand-navy);
+}
+.nav-pills .nav-link {
+  color: var(--brand-navy);
+}
