@@ -3,6 +3,7 @@ import { readingTexts } from '../data/readingTexts.js';
 import { normalize, wordSimilarity } from '../utils/levenshtein.js';
 import { blobToFloat32Audio } from '../utils/audio.js';
 import { transcribeAudio } from '../utils/transcribeApi.js';
+import { MicIcon, StopIcon, ResetIcon } from './icons.jsx';
 
 // Graba en trozos cortos mientras el usuario lee y transcribe cada trozo con
 // el mismo Whisper del servidor que usan Pronunciación/Conversación (no con
@@ -144,62 +145,100 @@ export default function ReadingPractice() {
     setError(null);
   };
 
+  const progress = Math.round((matchedCount / targetWords.length) * 100);
+
   return (
-    <div className="container py-5">
-      <div className="row justify-content-center">
-        <div className="col-lg-8">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h1 className="h4 mb-3">Práctica de Lectura</h1>
-              <p className="text-muted small">
-                Presiona &ldquo;Empezar a leer&rdquo; y lee el texto en voz alta: las palabras se
-                irán poniendo negras conforme las vayas pronunciando (se procesa en trozos de unos
-                segundos, no palabra por palabra al instante).
-              </p>
-
-              {error && <div className="alert brand-alert-warning">{error}</div>}
-
-              <div className="p-4 brand-phrase-box rounded mb-3 fs-5" style={{ lineHeight: 1.8 }}>
-                {targetWords.map((word, i) => {
-                  const spoken = i < matchedCount;
-                  const isToBe = spoken && TO_BE_WORDS.has(targetClean[i]);
-                  return (
-                    <span key={i} className={`reading-word ${spoken ? 'spoken' : ''} ${isToBe ? 'tobe' : ''}`}>
-                      {word}{' '}
-                    </span>
-                  );
-                })}
-              </div>
-
-              {isComplete && (
-                <div className="alert brand-alert-success d-flex justify-content-between align-items-center">
-                  <span>✔ ¡Leíste todo el texto!</span>
-                  <button type="button" className="btn brand-btn-success btn-sm" onClick={handleNextText}>
-                    Siguiente texto ➜
-                  </button>
-                </div>
-              )}
-
-              <div className="d-flex gap-2">
-                <button
-                  type="button"
-                  className={`btn flex-grow-1 ${isListening ? 'btn-danger' : 'brand-btn-primary'}`}
-                  onClick={isListening ? stopListening : startListening}
-                >
-                  {isListening ? 'Detener' : 'Empezar a leer'}
-                </button>
-                <button type="button" className="btn btn-outline-secondary" onClick={handleReset}>
-                  Reiniciar
-                </button>
-              </div>
+    <div className="app-page">
+      <div className="surface">
+        <div className="surface-body">
+          <div className="page-head">
+            <div>
+              <p className="eyebrow">Módulo · Lectura</p>
+              <h2 className="page-title">Lee el texto en voz alta</h2>
             </div>
+            <span className="step-chip">
+              {progress}
+              <span>%</span>
+            </span>
           </div>
-          <p className="text-center text-muted small mt-3">
-            El audio se transcribe en el servidor y se descarta al instante: no se guarda en
-            ninguna base de datos.
+
+          <p className="page-sub mb-3">
+            Presiona <strong>Empezar a leer</strong> y lee en voz alta: las palabras se irán
+            encendiendo conforme las pronuncies. El audio se procesa en trozos de unos segundos.
           </p>
+
+          {error && (
+            <div className="alert brand-alert-warning mb-3" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="progress brand-progress-track mb-3" style={{ height: '6px' }}>
+            <div className="progress-bar brand-progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+
+          <div className="text-card mb-3">
+            {targetWords.map((word, i) => {
+              const spoken = i < matchedCount;
+              const isToBe = spoken && TO_BE_WORDS.has(targetClean[i]);
+              return (
+                <span key={i} className={`reading-word ${spoken ? 'spoken' : ''} ${isToBe ? 'tobe' : ''}`}>
+                  {word}{' '}
+                </span>
+              );
+            })}
+          </div>
+
+          {isComplete && (
+            <div className="alert brand-alert-success d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <span>✔ ¡Leíste todo el texto!</span>
+              <button type="button" className="btn brand-btn-success btn-sm" onClick={handleNextText}>
+                Siguiente texto ➜
+              </button>
+            </div>
+          )}
+
+          <div className="action-dock">
+            <div className="d-flex gap-2">
+              <button
+                type="button"
+                className={`btn-record flex-grow-1 ${isListening ? 'is-recording' : ''}`}
+                onClick={isListening ? stopListening : startListening}
+              >
+                {isListening ? (
+                  <>
+                    <StopIcon /> Detener
+                  </>
+                ) : (
+                  <>
+                    <MicIcon /> Empezar a leer
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleReset}
+                aria-label="Reiniciar lectura"
+                title="Reiniciar"
+                style={{ flex: '0 0 auto', paddingInline: '16px' }}
+              >
+                <ResetIcon />
+                <span className="d-none d-sm-inline">Reiniciar</span>
+              </button>
+            </div>
+            <p className="record-note">
+              {isListening
+                ? 'Escuchando... lee con calma y articula cada palabra.'
+                : 'Necesitarás permitir el micrófono para empezar.'}
+            </p>
+          </div>
         </div>
       </div>
+      <p className="privacy-note">
+        El audio se transcribe en el servidor y se descarta al instante: no se guarda en ninguna base
+        de datos.
+      </p>
     </div>
   );
 }

@@ -58,6 +58,9 @@ src/
   hooks/useMicRecorder.js               getUserMedia + MediaRecorder
   utils/audio.js                        Blob -> Float32Array mono 16 kHz (formato de Whisper)
   utils/transcribeApi.js                Cliente fetch de /api/transcribe y /api/health
+  utils/ttsApi.js                       Cliente fetch de /api/tts (caché por texto + proveedor)
+  utils/speak.js                        Reproducción TTS, preferencia de voz y estado observable
+  hooks/useSpeechStatus.js              Hook que expone el estado de la voz (loading/speaking)
   utils/levenshtein.js                  Distancia de Levenshtein y % de similitud
   data/phrases.js                       Banco de frases de práctica (inglés)
 ```
@@ -100,20 +103,47 @@ ningún punto del código.
 
 ### Paleta de marca (`src/brand.css`)
 
-Los colores de la plataforma se aplicaron como tokens CSS y se reutilizan
-en los 3 estados de evaluación de la práctica:
+Tema oscuro sobre Bootstrap 5 (`data-bs-theme="dark"`), con todos los
+colores centralizados como tokens CSS:
 
-| Uso                                   | Color                                                    |
-| -------------------------------------- | --------------------------------------------------------- |
-| Banner principal                       | `linear-gradient(135deg, #061f3f 20%, #9ae1fd 100%)`      |
-| Contenedor de práctica                 | Blanco `#ffffff` (tarjeta Bootstrap)                       |
-| ✔ Pronunciación correcta (≥85%)        | Verde pastel `#d1e7dd` / texto `#0f5132`                   |
-| ➜ Casi (60-84%)                        | Naranja translúcido `rgba(245,158,11,0.14)` (acento hover) |
-| ✘ No coincide (<60%)                   | Rojo pastel `#f8d7da` / texto `#842029`                    |
+| Uso                          | Color                                        |
+| ---------------------------- | -------------------------------------------- |
+| Fondo de la app              | `#121212`                                    |
+| Superficies / tarjetas       | `#00152A`                                    |
+| Primario (CTAs, activo)      | `#FFCC00`                                    |
+| Acento (gradientes, avisos)  | `#FF9900`                                    |
+| Error / detener grabación    | `#FF4D4D` (solo estados de stop y error)     |
 
-Los pares de fondo/texto pastel son casi idénticos a los que ya usa
-Bootstrap para `alert-success`/`alert-danger`, así que además de contrastar
-con la marca, cumplen un contraste AA razonable sobre texto normal.
+El degradado de marca (`--grad-brand`) va de `#FFCC00` a `#FF9900` y se usa
+en el botón de grabar, la pestaña activa y la opción de voz seleccionada.
+Los textos sobre fondo oscuro usan `--c-text` / `--c-text-dim`, elegidos
+para cumplir contraste AA (verificado con axe en las 6 pestañas).
+
+### Voces de los ejercicios (Gemini / ElevenLabs)
+
+`POST /api/tts` acepta `{ text, provider }`, donde `provider` es
+`"gemini"`, `"elevenlabs"` o `"auto"` (por defecto). El servidor intenta
+primero el proveedor elegido y, si falla (cuota, rate-limit, key ausente),
+usa el otro como respaldo; la respuesta incluye el header
+`X-TTS-Provider` con el proveedor realmente usado.
+
+En la interfaz, el selector **Voz** del encabezado (`src/App.jsx`) cambia
+la preferencia en caliente y la guarda en `localStorage`
+(`englishlab.ttsProvider`), así que se mantiene entre visitas. Al cambiar
+de voz se corta el audio en curso, se descarta el audio cacheado de ese
+proveedor y se vuelve a sintetizar y reproducir la última frase con la voz
+nueva, sin recargar la página. Si hubo respaldo, aparece un aviso bajo el
+selector ("Respaldo activo: …"). Si ambos proveedores fallan,
+`src/utils/speak.js` cae a la voz nativa del navegador
+(`SpeechSynthesis`). Mientras el audio se genera se muestra un loader
+(spinner en el botón y chip "Generando audio…").
+
+Si un proveedor responde 429 (cuota/rate-limit) o 401/403 (credenciales),
+el servidor lo pone en pausa 10 minutos (1 hora para credenciales) y usa
+el otro directamente, en vez de esperar el fallo en cada frase. Cada
+respuesta del tutor en **Conversación** y **Entrevista** tiene un botón
+**Escuchar** para repetirla cuando el alumno quiera (usa el audio cacheado,
+sin gastar cuota).
 
 ## Alternativa 100% cliente
 

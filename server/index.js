@@ -7,6 +7,7 @@ import { pipeline, env } from '@xenova/transformers';
 import { getTutorReply } from './tutor.js';
 import { synthesizeSpeech } from './tts.js';
 import { lessons, interviewAreas } from '../shared/lessons.js';
+import { initDb, getLessons } from './db.js';
 
 const MAX_CHAT_MESSAGES = 16; // ~8 turnos usuario+IA
 
@@ -55,6 +56,19 @@ app.get('/api/health', (_req, res) => {
     ready: transcriber !== null,
     error: modelError ? String(modelError.message ?? modelError) : null,
   });
+});
+
+// Contenido del módulo de Pronunciación (lecciones + frases), a cargo de
+// los diseñadores de curso. Vive en MySQL; el audio no: se sigue generando
+// al vuelo con synthesizeSpeech() como ya hacía, no se guarda nada aquí.
+app.get('/api/lessons', async (_req, res) => {
+  try {
+    const data = await getLessons();
+    res.json(data);
+  } catch (err) {
+    console.error('[server] Error leyendo lecciones de la base de datos:', err);
+    res.status(503).json({ error: 'No se pudo cargar el contenido de las lecciones.' });
+  }
 });
 
 app.post('/api/transcribe', async (req, res) => {
@@ -177,11 +191,16 @@ app.post('/api/tts', async (req, res) => {
       return res.status(400).json({ error: 'Falta el texto a sintetizar.' });
     }
 
-    const audioBuffer = await synthesizeSpeech(text);
-    res.set('Content-Type', 'audio/mpeg');
-    res.send(audioBuffer);
+    // El cliente elige la voz ('gemini' | 'elevenlabs'); si no manda nada se
+    // mantiene el comportamiento anterior (Gemini con respaldo automático).
+    const provider = String(req.body?.provider ?? 'auto').toLowerCase();
+
+    const { buffer, contentType, provider: used } = await synthesizeSpeech(text, provider);
+    res.set('Content-Type', contentType);
+    res.set('X-TTS-Provider', used);
+    res.send(buffer);
   } catch (err) {
-    console.error('[server] Error generando voz (ElevenLabs):', err);
+    console.error('[server] Error generando voz (Gemini y ElevenLabs fallaron):', err);
     // El cliente cae a la voz del navegador (SpeechSynthesis) si esto falla.
     res.status(502).json({ error: 'No se pudo generar el audio.' });
   }
@@ -193,6 +212,14 @@ app.use(express.static(distPath));
 app.get('*', (_req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
+
+initDb()
+  .then(() => console.log('[server] Base de datos de lecciones lista (MySQL).'))
+  .catch((err) => {
+    // No tumba el servidor: ASR/tutor/TTS siguen funcionando igual.
+    // Solo /api/lessons (Pronunciación) queda sin datos hasta reconectar.
+    console.error('[server] No se pudo conectar a MySQL:', err.message);
+  });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

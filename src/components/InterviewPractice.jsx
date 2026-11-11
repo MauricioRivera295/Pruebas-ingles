@@ -5,6 +5,7 @@ import { fetchInterviewAreas, sendTutorMessage, translateText } from '../utils/t
 import { speak, stopSpeaking } from '../utils/speak.js';
 import { useMicRecorder } from '../hooks/useMicRecorder.js';
 import TutorAvatar from './TutorAvatar.jsx';
+import { MicIcon, StopIcon, GlobeIcon, BriefcaseIcon, SpeakerIcon } from './icons.jsx';
 
 const MAX_HISTORY = 16; // ~8 turnos usuario+IA (mismo límite que el server)
 const LESSON_ID = 'job-interview';
@@ -108,105 +109,144 @@ export default function InterviewPractice() {
   };
 
   return (
-    <div className="container py-5">
-      <div className="row justify-content-center">
-        <div className="col-lg-8">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h1 className="h4 mb-3">Entrevista de Trabajo</h1>
+    <div className="app-page">
+      <div className="surface">
+        <div className="surface-body">
+          <div className="page-head">
+            <div>
+              <p className="eyebrow">Módulo · Entrevista</p>
+              <h2 className="page-title">Simula tu entrevista de trabajo</h2>
+            </div>
+            {selectedArea && <span className="step-chip">{messages.length}<span> mensajes</span></span>}
+          </div>
 
-              {areasError && <div className="alert brand-alert-danger">{areasError}</div>}
+          {areasError && (
+            <div className="alert brand-alert-danger" role="alert">
+              {areasError}
+            </div>
+          )}
 
-              {!selectedArea && !areasError && (
-                <>
-                  <p className="text-muted small">¿Para qué área quieres practicar tu entrevista?</p>
-                  <div className="d-flex flex-wrap gap-2 mb-2">
-                    {areas.map((area) => (
-                      <button
-                        key={area.id}
-                        type="button"
-                        className="btn brand-btn-primary btn-sm"
-                        onClick={() => handlePickArea(area)}
-                      >
-                        {area.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+          {!selectedArea && !areasError && (
+            <>
+              <p className="page-sub mb-3">¿Para qué área quieres practicar tu entrevista?</p>
+              <div className="area-grid">
+                {areas.map((area) => (
+                  <button
+                    key={area.id}
+                    type="button"
+                    className="area-btn"
+                    onClick={() => handlePickArea(area)}
+                  >
+                    <span>{area.label}</span>
+                    <BriefcaseIcon />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
-              {selectedArea && (
-                <>
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span className="small text-muted">Área: {selectedArea.label}</span>
-                    <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleChangeArea}>
-                      Cambiar área
-                    </button>
-                  </div>
+          {selectedArea && (
+            <>
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <span className="small text-muted">
+                  Área: <strong className="text-white">{selectedArea.label}</strong>
+                </span>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={handleChangeArea}>
+                  Cambiar área
+                </button>
+              </div>
 
-                  <TutorAvatar speaking={isSpeaking} subtitle={subtitle} />
+              <TutorAvatar speaking={isSpeaking} subtitle={subtitle} />
 
-                  <div className="mb-3 p-2" style={{ maxHeight: '360px', overflowY: 'auto' }}>
-                    {messages.map((m, i) => (
-                      <div
-                        key={i}
-                        className={`mb-2 d-flex ${m.role === 'user' ? 'justify-content-end' : 'justify-content-start'}`}
-                      >
-                        <div
-                          className={`p-2 rounded ${m.role === 'user' ? 'brand-btn-primary' : 'brand-phrase-box'}`}
-                          style={{ maxWidth: '80%' }}
-                        >
-                          <div className="small">{m.content}</div>
+              <div className="chat-scroll" aria-live="polite">
+                {messages.map((m, i) => (
+                  <div
+                    key={i}
+                    className={`bubble-row ${m.role === 'user' ? 'is-user' : 'is-ai'}`}
+                  >
+                    <div className={`bubble ${m.role === 'user' ? 'is-user' : 'is-ai'}`}>
+                      <div>{m.content}</div>
 
-                          {m.role === 'assistant' && !m.translation && (
+                      {m.role === 'assistant' && (
+                        <div className="bubble-actions">
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            title="Escuchar esta respuesta"
+                            onClick={() =>
+                              speak(m.content, {
+                                onStart: () => setIsSpeaking(true),
+                                onEnd: () => setIsSpeaking(false),
+                              })
+                            }
+                          >
+                            <SpeakerIcon /> Escuchar
+                          </button>
+                          {!m.translation && (
                             <button
                               type="button"
-                              className="btn btn-sm btn-outline-secondary mt-1 py-0 px-1"
-                              style={{ fontSize: '0.7rem' }}
+                              className="btn-ghost"
                               onClick={() => handleTranslate(i)}
                               disabled={m.translating}
                             >
-                              {m.translating ? 'Traduciendo...' : '🌐 Traducir'}
+                              <GlobeIcon />
+                              {m.translating ? 'Traduciendo...' : 'Traducir'}
                             </button>
                           )}
-                          {m.translation && (
-                            <div className="small text-muted mt-1 fst-italic">{m.translation}</div>
-                          )}
-                          {m.translateError && <div className="small text-danger mt-1">{m.translateError}</div>}
-
-                          {m.provider && <div className="small text-muted mt-1">vía {m.provider}</div>}
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                      {m.translation && <div className="bubble-translation">{m.translation}</div>}
+                      {m.translateError && (
+                        <div className="bubble-translation text-danger">{m.translateError}</div>
+                      )}
 
-                  {(recorderError || error) && (
-                    <div className="alert brand-alert-warning" role="alert">
-                      {recorderError || error}
+                      {m.provider && <div className="bubble-meta">vía {m.provider}</div>}
                     </div>
-                  )}
-
-                  <div className="d-grid">
-                    <button
-                      type="button"
-                      className={`btn btn-lg ${isRecording ? 'btn-danger' : 'brand-btn-primary'}`}
-                      onClick={handleRecordClick}
-                      disabled={processing}
-                    >
-                      {processing ? 'Procesando...' : isRecording ? 'Detener grabación' : 'Grabar mi respuesta'}
-                    </button>
                   </div>
-                </>
+                ))}
+              </div>
+
+              {(recorderError || error) && (
+                <div className="alert brand-alert-warning mb-3" role="alert">
+                  {recorderError || error}
+                </div>
               )}
-            </div>
-          </div>
-          <p className="text-center text-muted small mt-3">
-            Tu voz se transcribe en el servidor y el texto se envía a un proveedor de IA externo
-            (Groq, con Gemini como respaldo automático) para generar la respuesta. No se guarda
-            en ninguna base de datos.
-          </p>
+
+              <div className="action-dock">
+                <button
+                  type="button"
+                  className={`btn-record ${isRecording ? 'is-recording' : ''}`}
+                  onClick={handleRecordClick}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" aria-hidden="true" />
+                      Procesando...
+                    </>
+                  ) : isRecording ? (
+                    <>
+                      <StopIcon /> Detener grabación
+                    </>
+                  ) : (
+                    <>
+                      <MicIcon /> Grabar mi respuesta
+                    </>
+                  )}
+                </button>
+                <p className="record-note">
+                  Responde como en una entrevista real. El tutor adaptará sus preguntas.
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
+      <p className="privacy-note">
+        Tu voz se transcribe en el servidor y el texto se envía a un proveedor de IA externo (Groq,
+        con Gemini como respaldo automático) para generar la respuesta. No se guarda en ninguna base
+        de datos.
+      </p>
     </div>
   );
 }
